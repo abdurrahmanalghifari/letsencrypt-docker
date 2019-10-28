@@ -1,4 +1,4 @@
-# Nginx LetsEncrypt dihost Docker
+# Automatic Regenerate LetsEncrypt dihost Docker (nginx)
 
 [Let's Encrypt](https://letsencrypt.org) is a free, automated, and open certificate authority brought to you by the non-profit Internet Security Research Group (ISRG).
 
