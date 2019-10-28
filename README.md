@@ -8,14 +8,21 @@
 Install di host.
 ``` sh
 yum -y install epel-release certbot
-mkdir -p /opt/stagging/nginx/conf/.well-known/acme-challenge
+mkdir -p /opt/staging/nginx/conf/.well-known/acme-challenge
 ``` 
 buat symlink agar bisa otomatis autorenew nantinya.
+dan sebelum next step disini folder harus sudah di mount volume ke docker. 
+agar bisa diakses didalam container.
 ```sh
-mkdir -p /opt/stagging/nginx/conf/ssl2
+  volumes:
+   - /opt/staging/nginx/conf:/opt/nginx/conf
+```
+
+```sh
+mkdir -p /opt/staging/nginx/conf/ssl2
 cd /etc/letsencrypt/
 mv archive archive-bak
-ln -s /opt/stagging/nginx/conf/ssl2 archive
+ln -s /opt/staging/nginx/conf/ssl2 archive
 ```
 ### Config .well-known taruh di setiap vhost(subdomain)
 nanti akan kita daftarkan SSL pada semua domain serta sub-domain tersebut.
@@ -26,28 +33,28 @@ untuk *.domain.tld itu tidak mencakup keseluruhan.
     # Blok sebelum tutup paling bawah
     #---ACME WELLKNOWN---#
     location /.well-known {
-          alias /opt/stagging/nginx/conf/.well-known;
+          alias /opt/staging/nginx/conf/.well-known;
     }
 
 ### Generate SSL 
 lalu jalankan perintah ini untuk generate semua subdomain. silahkan listing kebutuhannya.
 
 ```sh
-certbot certonly --rsa-key-size 4096 --webroot --agree-tos --no-eff-email --email age@domain.com -w /opt/stagging/nginx/conf -d domain.com -d www.domain.com -d cms.domain.com -d apis.domain.com
+certbot certonly --rsa-key-size 4096 --webroot --agree-tos --no-eff-email --email age@domain.com -w /opt/staging/nginx/conf -d domain.com -d www.domain.com -d cms.domain.com -d apis.domain.com
 ```
 
 ### Enable Konfigurasi
 setelah selesai generate SSL nya. tambahkan konfig SSL ini di vhost masing-masing domain dan subdomain.
 ``` sh
 #SSL LETSENCRYPT
-ssl_certificate /opt/stagging/nginx/conf/ssl2/domain.com/fullchain1.pem;
-ssl_certificate_key /opt/stagging/nginx/conf/ssl2/domain.com/privkey1.pem;
+ssl_certificate /opt/staging/nginx/conf/ssl2/domain.com/fullchain1.pem;
+ssl_certificate_key /opt/staging/nginx/conf/ssl2/domain.com/privkey1.pem;
 ```
 
 ### Test Nginx & Reload
 ```sh
-docker exec -it stagging /opt/nginx/sbin/nginx -t
-docker exec -it stagging /opt/nginx/sbin/nginx -s reload
+docker exec -it staging /opt/nginx/sbin/nginx -t
+docker exec -it staging /opt/nginx/sbin/nginx -s reload
 ```
 # Finish
 
@@ -65,7 +72,7 @@ crontab -e
 #SSL REGEN
 #setiap jam 09:00 WIB 3 bulan sekali.
 0 9 * */3 1 /usr/bin/certbot renew --quiet
-#setiap jam 09:10 WIB 3 bulan sekali.
-10 9 * */3 1 docker exec -it stagging /opt/nginx/sbin/nginx -s reload
+#setiap jam 09:10 WIB 3 bulan sekali. ( ini jeda waktu 10 menit untuk reload nya. karena dalam proses regenerate SSL nya membutuhkan beberapa waktu.
+10 9 * */3 1 docker exec -it staging /opt/nginx/sbin/nginx -s reload
 
 ```
